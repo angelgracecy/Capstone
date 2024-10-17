@@ -16,29 +16,32 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
+    permission_classes = [permissions.AllowAny] 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]  
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.AllowAny]  
 
 class BlogPostViewSet(viewsets.ModelViewSet):
     queryset = BlogPost.objects.all()
     serializer_class = BlogPostSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    permission_classes = [permissions.AllowAny]  
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'author', 'tags']
     search_fields = ['title', 'content', 'author__username', 'tags__name']
     ordering_fields = ['published_date', 'created_date']
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        if self.request.user.is_authenticated:
+            serializer.save(author=self.request.user)
+        else:
+           
+            serializer.save(author=None)  
 
     @action(detail=False, methods=['get'])
     def by_author(self, request):
@@ -57,4 +60,3 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(posts, many=True)
             return Response(serializer.data)
         return Response({"error": "Category ID is required"}, status=400)
-
